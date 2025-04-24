@@ -71,7 +71,7 @@ def init_logger(
     console_formatter = logging.Formatter(
         "%(levelname)s - %(message)s"
     )
-    console_handler.setFormatter(console_formatter）
+    console_handler.setFormatter(console_formatter)
 
     logger.addHandler(file_handler)
     logger.addHandler(console_handler)
