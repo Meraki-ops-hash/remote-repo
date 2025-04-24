@@ -158,5 +158,5 @@ def init_logger(log_file: str = "calculator.log") -> None:
          logger.addHandler(console_handler)
  
      # 关闭第三方库的日志
-     logging.getLogger("urllib3").setLevel(logging.WARNING)
+     logging.getLogger("urllib3").setLevel(logging.WARNING）
 
