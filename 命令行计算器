@@ -22,68 +22,6 @@ class Calculator:
         valid_ops = {'+', '-', '*', '/'}
         if op not in valid_ops:
             raise ValueError(f"Invalid operator: {op}. Valid operators are {valid_ops}")
-import sys
-from calculator import Calculator
-
-def parse_args(args: list) -> tuple:
-    if len(args) != 3:
-        raise ValueError("Usage: python main.py <num1> <operator> <num2>")
-    
-    try:
-        a = float(args[0])
-        b = float(args[2])
-    except ValueError:
-        raise ValueError("Invalid numeric input")
-    
-    op = args[1]
-    Calculator.validate_operator(op)
-    return a, op, b
-
-def main():
-    try:
-        a, op, b = parse_args(sys.argv[1:4])
-        result = None
-        
-        if op == '+':
-            result = Calculator.add(a, b)
-        elif op == '-':
-            result = Calculator.subtract(a, b)
-        elif op == '*':
-            result = Calculator.multiply(a, b)
-        elif op == '/':
-            result = Calculator.divide(a, b)
-            
-        print(f"Result: {result}")
-    
-    except Exception as e:
-        print(f"Error: {str(e)}")
-        sys.exit(1)
-
-if __name__ == "__main__":
-    main()
-import pytest
-from calculator import Calculator
-
-def test_add():
-    assert Calculator.add(2, 3) == 5
-
-def test_subtract():
-    assert Calculator.subtract(5, 3) == 2
-
-def test_multiply():
-    assert Calculator.multiply(2, 3) == 6
-
-def test_divide():
-    assert Calculator.divide(6, 3) == 2
-
-def test_divide_by_zero():
-    with pytest.raises(ValueError):
-        Calculator.divide(5, 0)
-
-def test_invalid_operator():
-    with pytest.raises(ValueError):
-        Calculator.validate_operator('^')
-#建议后改进代码：
 import logging
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
@@ -91,9 +29,9 @@ from pathlib import Path
 def init_logger(
     log_file: str = "calculator.log",
     log_level: int = logging.INFO,
-    max_size: int = 1024 * 1024,  # 默认1MB
+    max_size: int = 1024 * 1024,  # 1MB
     backup_count: int = 3
-) -> None:
+) -> logging.Logger:
     """
     初始化应用日志系统
     
@@ -102,12 +40,19 @@ def init_logger(
         log_level: 日志级别（默认：INFO）
         max_size: 单个日志文件最大字节数（默认：1MB）
         backup_count: 保留的备份文件数（默认：3）
+    
+    Returns:
+        配置好的Logger实例
     """
     logs_dir = Path("logs")
     logs_dir.mkdir(exist_ok=True)
     
     logger = logging.getLogger("calculator")
     logger.setLevel(log_level)
+
+    # 清除已有处理器防止重复
+    if logger.hasHandlers():
+        logger.handlers.clear()
 
     # 文件处理器（带轮转功能）
     file_handler = RotatingFileHandler(
@@ -126,12 +71,87 @@ def init_logger(
     console_formatter = logging.Formatter(
         "%(levelname)s - %(message)s"
     )
-    console_handler.setFormatter(console_formatter)
+    console_handler.setFormatter(console_formatter）
 
-    # 避免重复添加处理器
-    if not logger.handlers:
-        logger.addHandler(file_handler)
-        logger.addHandler(console_handler)
+    logger.addHandler(file_handler)
+    logger.addHandler(console_handler)
 
-    # 关闭第三方库的日志
-    logging.getLogger("urllib3").setLevel(logging.WARNING)
+    return logger
+import sys
+import logging
+from calculator import Calculator, init_logger
+
+def parse_args(args: list) -> tuple:
+    """解析命令行参数"""
+    if len(args) != 3:
+        raise ValueError("Usage: python main.py <num1> <operator> <num2>")
+    
+    try:
+        a = float(args[0])
+        b = float(args[2])
+    except ValueError:
+        raise ValueError("Invalid numeric input")
+    
+    op = args[1]
+    Calculator.validate_operator(op)
+    return a, op, b
+
+def main():
+    # 初始化日志系统
+    logger = init_logger(
+        log_level=logging.DEBUG,
+        max_size=5 * 1024 * 1024
+    )
+    
+    try:
+        a, op, b = parse_args(sys.argv[1:4])
+        result = None
+        
+        logger.debug(f"Starting calculation: {a} {op} {b}")
+        
+        if op == '+':
+            result = Calculator.add(a, b)
+        elif op == '-':
+            result = Calculator.subtract(a, b)
+        elif op == '*':
+            result = Calculator.multiply(a, b)
+        elif op == '/':
+            result = Calculator.divide(a, b)
+            
+        logger.info(f"Calculation successful: {a} {op} {b} = {result}")
+        print(f"Result: {result}")
+    
+    except Exception as e:
+        logger.error(f"Calculation failed: {str(e)}", exc_info=True)
+        print(f"Error: {str(e)}")
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()
+import pytest
+import logging
+from calculator import Calculator
+from calculator.logger import init_logger
+
+def test_logging_system(tmp_path):
+    """测试日志系统基础功能"""
+    test_log = tmp_path / "test.log"
+    
+    # 初始化测试日志
+    logger = init_logger(
+        log_file=test_log.name,
+        log_level=logging.DEBUG,
+        max_size=1024,
+        backup_count=1
+    )
+    
+    # 生成测试日志
+    logger.debug("Debug message")
+    logger.info("Info message")
+    logger.warning("Warning message")
+    
+    # 验证日志内容
+    log_content = test_log.read_text()
+    assert "Debug message" in log_content
+    assert "Info message" in log_content
+    assert "Warning message" in log_content
