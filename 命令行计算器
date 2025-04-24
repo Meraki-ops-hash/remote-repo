@@ -107,4 +107,56 @@ def init_logger(log_file: str = "calculator.log") -> None:
     
     logger.addHandler(file_handler)
     logger.addHandler(console_handler)
+    #建议后改进代码：
+ import logging
+ from logging.handlers import RotatingFileHandler
+ from pathlib import Path
+ 
+ def init_logger(
+     log_file: str = "calculator.log",
+     log_level: int = logging.INFO,
+     max_size: int = 1024 * 1024,  # 默认1MB
+     backup_count: int = 3
+ ) -> None:
+     """
+     初始化应用日志系统
+     
+     Args:
+         log_file: 日志文件名（默认：calculator.log）
+         log_level: 日志级别（默认：INFO）
+         max_size: 单个日志文件最大字节数（默认：1MB）
+         backup_count: 保留的备份文件数（默认：3）
+     """
+     logs_dir = Path("logs")
+     logs_dir.mkdir(exist_ok=True)
+     
+     logger = logging.getLogger("calculator")
+     logger.setLevel(log_level)
+ 
+     # 文件处理器（带轮转功能）
+     file_handler = RotatingFileHandler(
+         logs_dir / log_file,
+         maxBytes=max_size,
+         backupCount=backup_count,
+         encoding="utf-8"
+     )
+     file_formatter = logging.Formatter(
+         "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+     )
+     file_handler.setFormatter(file_formatter)
+ 
+     # 控制台处理器
+     console_handler = logging.StreamHandler()
+     console_formatter = logging.Formatter(
+         "%(levelname)s - %(message)s"
+     )
+     console_handler.setFormatter(console_formatter)
+ 
+     # 避免重复添加处理器
+     if not logger.handlers:
+         logger.addHandler(file_handler)
+         logger.addHandler(console_handler)
+ 
+     # 关闭第三方库的日志
+     logging.getLogger("urllib3").setLevel(logging.WARNING)
 
