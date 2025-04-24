@@ -83,4 +83,3 @@ def test_divide_by_zero():
 def test_invalid_operator():
     with pytest.raises(ValueError):
         Calculator.validate_operator('^')
-这部分是更改内容：
